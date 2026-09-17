@@ -7,16 +7,16 @@ import { Sun, Moon } from "lucide-react";
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
-  const transitionTimerRef = React.useRef<number | null>(null);
+  const viewTransitionRef = React.useRef<ReturnType<NonNullable<Document["startViewTransition"]>> | null>(null);
+  const themeRef = React.useRef(resolvedTheme);
 
   React.useEffect(() => {
     setMounted(true);
-    return () => {
-      if (transitionTimerRef.current !== null) {
-        window.clearTimeout(transitionTimerRef.current);
-      }
-    };
   }, []);
+
+  React.useEffect(() => {
+    themeRef.current = resolvedTheme;
+  }, [resolvedTheme]);
 
   if (!mounted) {
     return (
@@ -33,15 +33,8 @@ export function ThemeToggle({ className }: { className?: string }) {
   const isDark = resolvedTheme === "dark";
 
   const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const nextTheme = isDark ? "light" : "dark";
-    if (transitionTimerRef.current !== null) {
-      window.clearTimeout(transitionTimerRef.current);
-    }
-    document.documentElement.classList.add("theme-transition");
-    transitionTimerRef.current = window.setTimeout(() => {
-      document.documentElement.classList.remove("theme-transition");
-      transitionTimerRef.current = null;
-    }, 320);
+    const nextTheme = themeRef.current === "dark" ? "light" : "dark";
+    themeRef.current = nextTheme;
     const canUseViewTransition =
       typeof document !== "undefined" &&
       typeof document.startViewTransition === "function" &&
@@ -49,6 +42,15 @@ export function ThemeToggle({ className }: { className?: string }) {
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (!canUseViewTransition) {
+      document.documentElement.classList.add("theme-fallback-transition");
+      setTheme(nextTheme);
+      window.setTimeout(() => {
+        document.documentElement.classList.remove("theme-fallback-transition");
+      }, 250);
+      return;
+    }
+
+    if (viewTransitionRef.current) {
       setTheme(nextTheme);
       return;
     }
@@ -58,7 +60,17 @@ export function ThemeToggle({ className }: { className?: string }) {
     document.documentElement.style.setProperty("--theme-y", `${button.top + button.height / 2}px`);
 
     try {
-      document.startViewTransition?.(() => setTheme(nextTheme));
+      const transition = document.startViewTransition?.(() => setTheme(nextTheme));
+      if (!transition) {
+        setTheme(nextTheme);
+        return;
+      }
+      viewTransitionRef.current = transition;
+      transition.finished.then(() => {
+        viewTransitionRef.current = null;
+      }, () => {
+        viewTransitionRef.current = null;
+      });
     } catch {
       setTheme(nextTheme);
     }
@@ -68,7 +80,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       onClick={handleToggle}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className={`relative p-2 rounded-md border border-border bg-surface-subtle hover:bg-surface text-muted hover:text-foreground transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${className}`}
+      className={`relative p-2 rounded-md border border-border bg-surface-subtle hover:bg-surface text-muted hover:text-foreground transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${className}`}
       title={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
       <span className="relative w-4 h-4 block">

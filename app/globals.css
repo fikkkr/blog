@@ -23,7 +23,7 @@
   --duration-fast: 200ms;
   --duration-medium: 280ms;
   --duration-page: 240ms;
-  --theme-transition: 240ms;
+  --theme-transition: 250ms;
 }
 
 .dark {
@@ -52,14 +52,11 @@
 
   body {
     @apply bg-background text-foreground min-h-screen selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-300;
-    transition: background-color var(--theme-transition) var(--ease-out-cubic),
-                color var(--theme-transition) var(--ease-out-cubic),
-                border-color var(--theme-transition) var(--ease-out-cubic);
   }
 
-  .theme-transition,
-  .theme-transition * {
-    transition-property: background-color, border-color, color, fill, stroke, box-shadow, opacity, transform;
+  .theme-fallback-transition,
+  .theme-fallback-transition * {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
     transition-duration: var(--theme-transition);
     transition-timing-function: var(--ease-out-cubic);
   }
@@ -112,7 +109,7 @@
 }
 
 ::view-transition-new(root) {
-  animation: themeReveal 420ms var(--ease-out-expo) both;
+  animation: themeReveal 360ms var(--ease-out-expo) both;
   clip-path: circle(0 at var(--theme-x) var(--theme-y));
 }
 
